@@ -7,8 +7,8 @@
 #include <vector>
 
 // WiFi credentials
-const char* ssid = "HUAWEI-B310-68AD";
-const char* password = "YALJG3Y7FH6";
+const char* ssid = "jesus";
+const char* password = "12345678j";
 
 // API URL (same for GET & POST)
 const char* apiServer = "http://192.168.142.246/Cabinet11/cabinet_api.php";
@@ -33,6 +33,8 @@ Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
 String inputPIN = "";
 std::vector<String> validPins;
+unsigned long lastPinRefresh = 0;
+const unsigned long PIN_REFRESH_INTERVAL = 30000; // Refresh PINs every 30 seconds
 
 // Stepper motor pins (4-wire)
 #define IN1 23
@@ -101,12 +103,12 @@ void loop() {
 
       if (found) {
         lcd.clear();
-        lcd.print("Access Granted");
+        lcd.print("Welcome");
         unlockCabinet();
         logAccess(inputPIN, "Granted");
       } else {
         lcd.clear();
-        lcd.print("Access Denied");
+        lcd.print("Denied Access");
         logAccess(inputPIN, "Denied");
         delay(3000);
       }
@@ -180,21 +182,42 @@ void logAccess(String pin, String status) {
 void unlockCabinet() {
   lcd.clear();
   lcd.print("Unlocking...");
-  for (int i = 0; i < 100; i++) { // rotate forward
+  Serial.println("Starting unlock sequence...");
+  
+  // Rotate forward (unlock)
+  for (int i = 0; i < 512; i++) { // More steps for full rotation
     stepMotor(step_number);
     step_number++;
     if (step_number > 7) step_number = 0;
-    delay(5);
+    delay(2); // Faster rotation
+    
+    // Debug output every 100 steps
+    if (i % 100 == 0) {
+      Serial.printf("Unlock step: %d, motor step: %d\n", i, step_number);
+    }
   }
+  
+  Serial.println("Unlock complete, waiting 3 seconds...");
   delay(3000); // keep cabinet open for 3 sec
+  
   lcd.clear();
   lcd.print("Locking...");
-  for (int i = 0; i < 100; i++) { // rotate backward
+  Serial.println("Starting lock sequence...");
+  
+  // Rotate backward (lock)
+  for (int i = 0; i < 512; i++) { // More steps for full rotation
     stepMotor(step_number);
     step_number--;
     if (step_number < 0) step_number = 7;
-    delay(5);
+    delay(2); // Faster rotation
+    
+    // Debug output every 100 steps
+    if (i % 100 == 0) {
+      Serial.printf("Lock step: %d, motor step: %d\n", i, step_number);
+    }
   }
+  
+  Serial.println("Lock complete");
   lcd.clear();
   lcd.print("Locked");
   delay(1000);
@@ -203,16 +226,56 @@ void unlockCabinet() {
   lcd.setCursor(0,1);
 }
 
-// Step motor one step
+// Step motor one step (improved)
 void stepMotor(int step) {
   switch (step) {
-    case 0: digitalWrite(IN1, HIGH); digitalWrite(IN2, LOW);  digitalWrite(IN3, LOW);  digitalWrite(IN4, LOW);  break;
-    case 1: digitalWrite(IN1, HIGH); digitalWrite(IN2, HIGH); digitalWrite(IN3, LOW);  digitalWrite(IN4, LOW);  break;
-    case 2: digitalWrite(IN1, LOW);  digitalWrite(IN2, HIGH); digitalWrite(IN3, LOW);  digitalWrite(IN4, LOW);  break;
-    case 3: digitalWrite(IN1, LOW);  digitalWrite(IN2, HIGH); digitalWrite(IN3, HIGH); digitalWrite(IN4, LOW);  break;
-    case 4: digitalWrite(IN1, LOW);  digitalWrite(IN2, LOW);  digitalWrite(IN3, HIGH); digitalWrite(IN4, LOW);  break;
-    case 5: digitalWrite(IN1, LOW);  digitalWrite(IN2, LOW);  digitalWrite(IN3, HIGH); digitalWrite(IN4, HIGH); break;
-    case 6: digitalWrite(IN1, LOW);  digitalWrite(IN2, LOW);  digitalWrite(IN3, LOW);  digitalWrite(IN4, HIGH); break;
-    case 7: digitalWrite(IN1, HIGH); digitalWrite(IN2, LOW);  digitalWrite(IN3, LOW);  digitalWrite(IN4, HIGH); break;
+    case 0: 
+      digitalWrite(IN1, HIGH); 
+      digitalWrite(IN2, LOW);  
+      digitalWrite(IN3, LOW);  
+      digitalWrite(IN4, LOW);  
+      break;
+    case 1: 
+      digitalWrite(IN1, HIGH); 
+      digitalWrite(IN2, HIGH); 
+      digitalWrite(IN3, LOW);  
+      digitalWrite(IN4, LOW);  
+      break;
+    case 2: 
+      digitalWrite(IN1, LOW);  
+      digitalWrite(IN2, HIGH); 
+      digitalWrite(IN3, LOW);  
+      digitalWrite(IN4, LOW);  
+      break;
+    case 3: 
+      digitalWrite(IN1, LOW);  
+      digitalWrite(IN2, HIGH); 
+      digitalWrite(IN3, HIGH); 
+      digitalWrite(IN4, LOW);  
+      break;
+    case 4: 
+      digitalWrite(IN1, LOW);  
+      digitalWrite(IN2, LOW);  
+      digitalWrite(IN3, HIGH); 
+      digitalWrite(IN4, LOW);  
+      break;
+    case 5: 
+      digitalWrite(IN1, LOW);  
+      digitalWrite(IN2, LOW);  
+      digitalWrite(IN3, HIGH); 
+      digitalWrite(IN4, HIGH); 
+      break;
+    case 6: 
+      digitalWrite(IN1, LOW);  
+      digitalWrite(IN2, LOW);  
+      digitalWrite(IN3, LOW);  
+      digitalWrite(IN4, HIGH); 
+      break;
+    case 7: 
+      digitalWrite(IN1, HIGH); 
+      digitalWrite(IN2, LOW);  
+      digitalWrite(IN3, LOW);  
+      digitalWrite(IN4, HIGH); 
+      break;
   }
 } 
